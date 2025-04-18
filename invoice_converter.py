@@ -20,14 +20,26 @@ def ocr_page(page: Any) -> str:
     Returns:
         Extracted text from the page
     """
-    # Convert page to image and run OCR
-    with pdfplumber.open(page) as pdf:
-        pdf_page = pdf.pages[0]
-        im = pdf_page.to_image()
-        im.save("temp.png")
-        text = pytesseract.image_to_string(Image.open("temp.png"))
-        os.remove("temp.png")
-        return cast(str, text)
+    # Create a temporary PDF with just this page
+    temp_pdf = "temp_page.pdf"
+    writer = PdfWriter()
+    writer.addpage(page)
+    writer.write(temp_pdf)
+
+    # Now open with pdfplumber and process
+    try:
+        with pdfplumber.open(temp_pdf) as pdf:
+            pdf_page = pdf.pages[0]
+            im = pdf_page.to_image()
+            im.save("temp.png")
+            text = pytesseract.image_to_string(Image.open("temp.png"))
+            return cast(str, text)
+    finally:
+        # Clean up temporary files
+        if os.path.exists(temp_pdf):
+            os.remove(temp_pdf)
+        if os.path.exists("temp.png"):
+            os.remove("temp.png")
 
 
 def extract_invoice_number(text: str) -> Optional[str]:
@@ -143,15 +155,19 @@ def update_pdf_package(existing_pdf: str, new_invoices_dir: str, output_pdf: str
 def main() -> None:
     """Process invoice PDFs and generate updated package."""
     parser = argparse.ArgumentParser(description="Update PDF invoice packages")
-    parser.add_argument("--existing", required=True, help="Existing PDF file path")
+    parser.add_argument(
+        "--existing",
+        default="/Users/aaronporter/Desktop/R6 invoices/PNW Open Invoices - unrevised.pdf",
+        help="Existing PDF file path",
+    )
     parser.add_argument(
         "--new-dir",
-        required=True,
+        default="/Users/aaronporter/Desktop/R6 invoices/new_invoices",
         help="Directory with new invoice PDFs",
     )
     parser.add_argument(
         "--output",
-        required=True,
+        default="/Users/aaronporter/Desktop/R6 invoices/PNW Open Invoices - updated.pdf",
         help="Output PDF file path",
     )
 
