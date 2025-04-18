@@ -1,0 +1,18 @@
+Page 1 - NO MATCH
+----------------------------------------
+American Millennium Corporation, Inc Service Invoice
+American Millennium Corporation
+PO Box 73065
+Houston TX 77273
+United States
+Date Invoice #
+7/1/2023 1142454
+Bill To Ship To
+IPP USDA Pacific NW Region 6
+USFA Mt Vaker Snoqualmie National Forest 1220 SW 3rd Ave
+USDA Pacific NW Region 6 Portland OR 97201
+2930 Wetmore Ave, Suite 3A United States
+Everett WA 98201
+Customer ID PO# Service Period Terms
+PNW100 USDA Pacific NW Reg... 1240BD21P0088 - Met... July 2023 Net 30
+AMCi Serial # Item Qty Descri

@@ -45,6 +45,8 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+package_root = "."
+packages = ["invoice_converter"]
 
 [tool.flake8]
 max-line-length = 120
