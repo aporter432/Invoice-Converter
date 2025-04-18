@@ -1,0 +1,18 @@
+{
+  "fields": {
+    "invoice_number": "Date Invoice #\n7/1/2023 1142454",
+    "date": "",
+    "customer_name": "To\nA Mt Vaker Snoqualmie National Forest\nA Pacific NW Region 6",
+    "customer_id": "VOLv3e r-age\nIDPAIR -\nVL3\nSATALAR",
+    "po_number": "1 IDP Satellite air time charge 2\n1 SatAlarm Server Application B",
+    "service_period": "25kb plan 62\nBasic Plan 19",
+    "terms": "2.32 62.32\n9.64 19.64",
+    "total_amount": "999.00",
+    "additional_fields": {
+      "filename": "deprecated_format.pdf",
+      "filepath": "/Users/aaronporter/Projects/Invoice Converter/deprecated_format.pdf",
+      "extraction_time": "2025-04-18T14:39:38.197484"
+    }
+  },
+  "line_items": []
+}

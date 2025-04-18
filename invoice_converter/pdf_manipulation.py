@@ -67,6 +67,9 @@ class PDFManipulator:
 
         # Get page size from template
         with pdfplumber.open(self.template_path) as pdf:
+            if not pdf.pages:
+                raise ValueError("Template PDF has no pages")
+
             first_page = pdf.pages[0]
             page_width = float(first_page.width)
             page_height = float(first_page.height)
@@ -74,11 +77,16 @@ class PDFManipulator:
         # Create canvas with matching page size
         c = canvas.Canvas(buffer, pagesize=(page_width, page_height))
 
+        if c is None:
+            raise ValueError("Failed to create PDF canvas")
+
         # Add all text fields based on configuration
-        self._add_text_fields(c, field_data)
+        if field_data is not None:
+            self._add_text_fields(c, field_data)
 
         # Add line items table
-        self._add_line_items_table(c, line_items)
+        if line_items is not None:
+            self._add_line_items_table(c, line_items)
 
         # Finalize the PDF
         c.save()
@@ -96,7 +104,12 @@ class PDFManipulator:
             c: ReportLab canvas object
             field_data: Pydantic model containing field data
         """
+        if c is None or field_data is None:
+            return
+
         fields = self.config.get("fields", [])
+        if not fields:
+            return
 
         for field in fields:
             field_name = field.get("name")
@@ -106,6 +119,7 @@ class PDFManipulator:
                 continue
 
             # Get field value - check if it's a direct attribute or in additional_fields
+            value = None
             if hasattr(field_data, field_name):
                 value = getattr(field_data, field_name)
             else:
@@ -117,14 +131,19 @@ class PDFManipulator:
             # Convert region to absolute coordinates
             x1, y1, x2, y2 = region
             page_width, page_height = c._pagesize
+            if page_width is None or page_height is None:
+                continue
 
             # Calculate position (center of region)
             x_pos = x1 * page_width + (x2 - x1) * page_width / 2
             y_pos = page_height - (y1 * page_height + (y2 - y1) * page_height / 2)
 
             # Add text
-            c.setFont("Helvetica", 10)
-            c.drawString(x_pos, y_pos, str(value))
+            try:
+                c.setFont("Helvetica", 10)
+                c.drawString(x_pos, y_pos, str(value))
+            except Exception as e:
+                print(f"Error adding text field {field_name}: {e}")
 
     def _add_line_items_table(self, c: canvas.Canvas, line_items: List[LineItem]) -> None:
         """
@@ -134,7 +153,7 @@ class PDFManipulator:
             c: ReportLab canvas object
             line_items: List of LineItem Pydantic models
         """
-        if not line_items:
+        if c is None or not line_items:
             return
 
         table_config = self.config.get("table_extraction", {})
@@ -144,55 +163,64 @@ class PDFManipulator:
             return
 
         # Convert region to absolute coordinates
-        x1, y1, x2, y2 = table_region
-        page_width, page_height = c._pagesize
+        try:
+            x1, y1, x2, y2 = table_region
+            page_width, page_height = c._pagesize
+            if page_width is None or page_height is None:
+                return
 
-        table_x = x1 * page_width
-        table_y = page_height - y2 * page_height
-        table_width = (x2 - x1) * page_width
-        table_height = (y2 - y1) * page_height
+            table_x = x1 * page_width
+            table_y = page_height - y2 * page_height
+            table_width = (x2 - x1) * page_width
+            table_height = (y2 - y1) * page_height
 
-        # Create column headers
-        column_mapping = table_config.get("column_mapping", [])
-        headers = []
-        for col_map in sorted(column_mapping, key=lambda x: x.get("index", 0)):
-            headers.append(col_map.get("name", "").title())
+            # Create column headers
+            column_mapping = table_config.get("column_mapping", [])
+            if not column_mapping:
+                return
 
-        # Prepare data for the table
-        data = [headers]
-
-        for item in line_items:
-            row = []
+            headers = []
             for col_map in sorted(column_mapping, key=lambda x: x.get("index", 0)):
-                col_name = col_map.get("name")
-                if col_name and hasattr(item, col_name):
-                    row.append(getattr(item, col_name) or "")
-                else:
-                    row.append("")
-            data.append(row)
+                headers.append(col_map.get("name", "").title())
 
-        # Create the table
-        table = Table(data, colWidths=[table_width / len(headers)] * len(headers))
+            # Prepare data for the table
+            data = [headers]
 
-        # Style the table
-        style = TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, 0), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                ("BACKGROUND", (0, 1), (-1, -1), colors.white),
-                ("GRID", (0, 0), (-1, -1), 1, colors.black),
-            ]
-        )
+            for item in line_items:
+                row = []
+                for col_map in sorted(column_mapping, key=lambda x: x.get("index", 0)):
+                    col_name = col_map.get("name")
+                    if col_name and hasattr(item, col_name):
+                        row.append(getattr(item, col_name) or "")
+                    else:
+                        row.append("")
+                data.append(row)
 
-        table.setStyle(style)
+            # Create the table
+            if headers:
+                table = Table(data, colWidths=[table_width / len(headers)] * len(headers))
 
-        # Draw the table on the canvas
-        table.wrapOn(c, table_width, table_height)
-        table.drawOn(c, table_x, table_y)
+                # Style the table
+                style = TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, 0), 10),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                        ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                    ]
+                )
+
+                table.setStyle(style)
+
+                # Draw the table on the canvas
+                table.wrapOn(c, table_width, table_height)
+                table.drawOn(c, table_x, table_y)
+        except Exception as e:
+            print(f"Error adding line items table: {e}")
 
     def _overlay_on_template(self, content_buffer: io.BytesIO, output_path: str) -> None:
         """
@@ -202,35 +230,53 @@ class PDFManipulator:
             content_buffer: Buffer containing the content to overlay
             output_path: Path where the new PDF should be saved
         """
-        # Read the template
-        template = pdfrw.PdfReader(self.template_path)
+        try:
+            # Read the template
+            template = pdfrw.PdfReader(self.template_path)
+            if template is None:
+                raise ValueError("Failed to read template PDF")
 
-        # Read the content to overlay
-        content_buffer.seek(0)
-        overlay = pdfrw.PdfReader(content_buffer)
+            # Read the content to overlay
+            content_buffer.seek(0)
+            overlay = pdfrw.PdfReader(content_buffer)
+            if overlay is None:
+                raise ValueError("Failed to read overlay content")
 
-        # Check that both PDFs have pages
-        template_pages = getattr(template, "pages", None)
-        overlay_pages = getattr(overlay, "pages", None)
+            # Check that both PDFs have pages
+            template_pages = getattr(template, "pages", None)
+            overlay_pages = getattr(overlay, "pages", None)
 
-        if template_pages is None or overlay_pages is None:
-            # Handle case where pages are missing
-            raise ValueError("Invalid PDF structure: missing pages in template or overlay")
+            if template_pages is None or overlay_pages is None:
+                # Handle case where pages are missing
+                raise ValueError("Invalid PDF structure: missing pages in template or overlay")
 
-        # Type assertions to help static type checker
-        from typing import List, cast
+            # Type assertions to help static type checker
+            from typing import List, cast
 
-        template_pages = cast(List, template_pages)
-        overlay_pages = cast(List, overlay_pages)
+            template_pages = cast(List, template_pages)
+            overlay_pages = cast(List, overlay_pages)
 
-        # For each page in the template
-        for i, page in enumerate(template_pages):
-            if i < len(overlay_pages):
-                # Merge the content onto the template
-                page.Merge(overlay_pages[i])
+            # For each page in the template
+            for i, page in enumerate(template_pages):
+                if i < len(overlay_pages):
+                    # Merge the content onto the template
+                    page.Merge(overlay_pages[i])
 
-        # Write the output
-        pdfrw.PdfWriter().write(output_path, template)
+            # Fix the pdfrw writer usage - change the API call
+            writer = pdfrw.PdfWriter()
+            # The following line might be causing the error
+            # writer.write(output_path, template)
+
+            # Use the correct API for pdfrw:
+            # First add the pages to the writer
+            for page in template_pages:
+                writer.addpage(page)
+
+            # Then write to the output file
+            writer.write(output_path)
+        except Exception as e:
+            print(f"Error overlaying on template: {e}")
+            raise
 
     def extract_template_structure(self) -> PDFStructure:
         """

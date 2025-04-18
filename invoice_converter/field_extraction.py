@@ -101,21 +101,24 @@ class FieldExtractor:
         abs_x2, abs_y2 = int(x2 * width), int(y2 * height)
 
         try:
-            # Get the image
+            # Get the image - pdfplumber returns a PageImage object
             img = pdf_page.to_image(resolution=300)
 
-            # Crop to region
-            crop_box = (abs_x1, abs_y1, abs_x2, abs_y2)
-            cropped_img = img.crop(crop_box)
+            # For pdfplumber's PageImage object, we need to use the correct approach
+            # The bbox parameter is what we need instead of crop
+            bbox = (abs_x1, abs_y1, abs_x2, abs_y2)
+
+            # Convert to PIL Image and then crop
+            pil_image = img.original
+            cropped_pil = pil_image.crop(bbox)
 
             # Enhance for OCR
-            enhanced_img = self.enhance_image_for_ocr(cropped_img.original)
+            enhanced_img = self.enhance_image_for_ocr(cropped_pil)
 
             # Perform OCR
             ocr_result = pytesseract.image_to_string(enhanced_img)
-            # Ensure we return a string
-            text = str(ocr_result) if ocr_result is not None else ""
-            return text.strip()
+            # Ensure we return a string, even if OCR returns None
+            return str(ocr_result).strip() if ocr_result is not None else ""
         except Exception as e:
             print(f"Error extracting text with OCR: {e}")
             return ""
@@ -181,8 +184,7 @@ class FieldExtractor:
         # In a real system, you would use more sophisticated date parsing
         if text is None:
             return ""
-        if isinstance(text, str):
-            return text
+        # Ensure we always return a string
         return str(text)
 
     def process_amount(self, text: str) -> str:
