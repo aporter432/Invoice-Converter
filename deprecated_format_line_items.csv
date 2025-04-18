@@ -1,0 +1,4 @@
+site_name,item,quantity,rate,description,subtotal
+Mt Vaker,IDPAIR-VL3-Overage,8640,0.001440,IDP Satellite airtime overage for 25kb plan,12.44
+Mt Vaker,IDPAIR-VL3,1,62.320000,IDP Satellite air time charge 25kb plan,62.32
+Mt Vaker,SATALAR-M-w/APPLIC-ATION,1,19.640000,SatAlarm Server Application Basic Plan,19.64
