@@ -20,6 +20,7 @@ flake8 = "^7.0.0"
 mypy = "^1.8.0"
 bandit = "^1.7.8"
 pre-commit = "^3.5.0"
+setuptools = "^78.1.0"
 
 [build-system]
 requires = ["poetry-core"]
