@@ -1,0 +1,52 @@
+[tool.poetry]
+name = "invoice-converter"
+version = "0.1.0"
+description = "A tool to update PDF invoice packages with new format invoices"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+Pillow = "^10.0.0"
+pytesseract = "^0.3.10"
+pdfplumber = "^0.9.0"
+pdfrw = "^0.4.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+black = "^24.2.0"
+isort = "^5.13.2"
+flake8 = "^7.0.0"
+mypy = "^1.8.0"
+bandit = "^1.7.8"
+pre-commit = "^3.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+invoice-converter = "invoice_converter:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = "E203"
+exclude = [".venv", "venv", "env", ".git", "build", "dist"]

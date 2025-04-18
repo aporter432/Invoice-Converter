@@ -1,0 +1,52 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.13"]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y tesseract-ocr
+
+    - name: Install Poetry
+      uses: abatilo/actions-poetry@v2
+      with:
+        poetry-version: 1.8.2
+
+    - name: Install dependencies
+      run: |
+        poetry install --no-interaction
+
+    - name: Code formatting check
+      run: |
+        poetry run black --check .
+
+    - name: Import sorting check
+      run: |
+        poetry run isort --check .
+
+    - name: Lint with flake8
+      run: |
+        poetry run flake8
+
+    - name: Test with pytest
+      run: |
+        poetry run pytest
